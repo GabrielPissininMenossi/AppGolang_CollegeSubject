@@ -1,0 +1,49 @@
+name: Publicação automática Golang
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configura o Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Compila o binário para Linux
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o appgolang .
+
+      - name: Cria arquivo temporário com a chave privada
+        run: |
+          echo "${{ secrets.KEY }}" > /tmp/private_key
+          chmod 600 /tmp/private_key
+
+      - name: Envia o binário para o servidor
+        run: |
+          scp -i /tmp/private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            appgolang ubuntu@${{ secrets.HOST }}:/home/ubuntu/projeto-golang/appgolang
+
+      - name: Ajusta permissão de execução do binário
+        run: |
+          ssh -i /tmp/private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ secrets.HOST }} \
+            "chmod +x /home/ubuntu/projeto-golang/appgolang"
+
+      - name: Reinicia o serviço da aplicação
+        run: |
+          ssh -i /tmp/private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ secrets.HOST }} \
+            "sudo systemctl restart appgolang.service"
+
+      - name: Limpa a chave privada
+        run: |
+          rm /tmp/private_key
+
+      - name: Notificar pelo Discord
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+            --data '{"content": "✅ Deploy do appgolang realizado com sucesso!"}' \
+            ${{ secrets.DISCORD_WEBHOOK }}
