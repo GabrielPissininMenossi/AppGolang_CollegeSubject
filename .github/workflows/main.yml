@@ -23,10 +23,20 @@ jobs:
           echo "${{ secrets.KEY }}" > /tmp/private_key
           chmod 600 /tmp/private_key
 
-      - name: Envia o binário para o servidor
+      - name: Para o serviço antes de atualizar o binário
+        run: |
+          ssh -i /tmp/private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ secrets.HOST }} \
+            "sudo systemctl stop appgolang.service"
+
+      - name: Envia o binário atualizado para o servidor
         run: |
           scp -i /tmp/private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             appgolang ubuntu@${{ secrets.HOST }}:/home/ubuntu/projeto-golang/appgolang
+
+      - name: Ajusta permissão de execução e reinicia o serviço
+        run: |
+          ssh -i /tmp/private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ secrets.HOST }} \
+            "chmod +x /home/ubuntu/projeto-golang/appgolang && sudo systemctl start appgolang.service"
 
       - name: Ajusta permissão de execução do binário
         run: |
