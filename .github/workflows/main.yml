@@ -23,6 +23,11 @@ jobs:
           echo "${{ secrets.KEY }}" > /tmp/private_key
           chmod 600 /tmp/private_key
 
+      - name: Faz backup do binário atual no servidor
+        run: |
+          ssh -i /tmp/private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ secrets.HOST }} \
+            "cp /home/ubuntu/projeto-golang/appgolang /home/ubuntu/projeto-golang/backups/appgolang_\$(date +%Y%m%d%H%M%S) || mkdir -p /home/ubuntu/projeto-golang/backups && cp /home/ubuntu/projeto-golang/appgolang /home/ubuntu/projeto-golang/backups/appgolang_\$(date +%Y%m%d%H%M%S)"
+
       - name: Para o serviço antes de atualizar o binário
         run: |
           ssh -i /tmp/private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ secrets.HOST }} \
@@ -38,22 +43,21 @@ jobs:
           ssh -i /tmp/private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ secrets.HOST }} \
             "chmod +x /home/ubuntu/projeto-golang/appgolang && sudo systemctl start appgolang.service"
 
-      - name: Ajusta permissão de execução do binário
-        run: |
-          ssh -i /tmp/private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ secrets.HOST }} \
-            "chmod +x /home/ubuntu/projeto-golang/appgolang"
-
-      - name: Reinicia o serviço da aplicação
-        run: |
-          ssh -i /tmp/private_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ secrets.HOST }} \
-            "sudo systemctl restart appgolang.service"
-
       - name: Limpa a chave privada
+        if: always()
         run: |
-          rm /tmp/private_key
+          rm -f /tmp/private_key
 
-      - name: Notificar pelo Discord
+      - name: Notifica sucesso no Discord
+        if: success()
         run: |
           curl -X POST -H "Content-Type: application/json" \
             --data '{"content": "✅ Deploy do appgolang realizado com sucesso!"}' \
+            ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Notifica falha no Discord
+        if: failure()
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+            --data '{"content": "❌ Falha no deploy do appgolang! Verifique os logs da Action."}' \
             ${{ secrets.DISCORD_WEBHOOK }}
