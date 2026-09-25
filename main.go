@@ -76,7 +76,7 @@ const htmlPage = `<!DOCTYPE html>
 <body>
     <div class="card">
         <h1>Gabriel</h1>
-        <p>Desenvolvedor construindo com Go e explorando infraestrutura na nuvem.</p>
+        <p>Desenvolvedor Backend de Go e explorando infraestrutura cloud da Oracle.</p>
         <span class="tag">Go</span>
         <span class="tag">Backend</span>
         <span class="tag">Cloud</span>
